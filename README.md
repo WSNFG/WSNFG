@@ -31,7 +31,7 @@ The code is currently tested only on GPU
     
       - Download model using
        ```
-        wget https://smoothlearning.oss-cn-hongkong.aliyuncs.com/resnet50_81.pth
+        wget https://sl-fg.oss-cn-hongkong.aliyuncs.com/resnet50_81.pth
        ```
     
       - Choose a dataset, create soft link to dataset by
