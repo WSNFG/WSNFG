@@ -2,7 +2,7 @@
 
 Introduction
 ------------
-This is the source code for our paper **Smooth Learning: Web-Supervised Training for Fine-Grained Visual Classification**
+This is the source code for our paper **Web-Supervised Network with Smooth Labeling for Fine-Grained Visual Classification**
 
 Network Architecture
 --------------------
