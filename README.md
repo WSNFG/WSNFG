@@ -1,4 +1,4 @@
-# Web-Supervised Network with Softly Update-Drop Training for Fine-Grained Visual Classification
+# Web-Supervised Network with Smooth Labeling for Fine-Grained Visual Classification
 
 Introduction
 ------------
