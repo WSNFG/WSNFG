@@ -50,8 +50,12 @@ class Manager_AM(object):
         else:
             raise AssertionError('Not implemented yet')
 
-        net = NET(n_classes=options['n_classes'], pretrained=True)
-
+        if self._step == 1:
+            net = NET(n_classes=options['n_classes'], pretrained=True)
+        elif self._step == 2:
+            net = NET(n_classes=options['n_classes'], pretrained=False)
+        else:
+            raise AssertionError('Wrong step')
         if torch.cuda.device_count() >= 1:
             self._net = torch.nn.DataParallel(net).cuda()
             print('cuda device : ', torch.cuda.device_count())
