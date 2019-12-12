@@ -63,4 +63,4 @@ The code is currently tested only on GPU
        ```
        bash run_train_resnet.sh
        ```
-    - We recommend you use Resnet model, because it's easier to train. Resnet-18 model shows similar performance with BCNN model but needs much less time to train. If you want to train the BCNN model, use ``` run_train_bcnn.sh```. 
+    - We recommend you use Resnet model, because it's easier to train. Resnet-18 model shows similar performance with BCNN model but needs much less time to train. Resnet-50 has better performance. If you want to train the BCNN model, use ``` run_train_bcnn.sh```. 
