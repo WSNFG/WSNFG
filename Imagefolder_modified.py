@@ -91,10 +91,11 @@ class DatasetFolder(VisionDataset):
         targets (list): The class_index value for each image in the dataset
     """
 
-    def __init__(self, root, loader, extensions=None, transform=None, target_transform=None, is_valid_file=None, number=None):
+    def __init__(self, root, loader, extensions=None, transform=None, target_transform=None, is_valid_file=None, cached=False, number=None):
         super(DatasetFolder, self).__init__(root)
         self.transform = transform
         self.target_transform = target_transform
+        self.cached=cached
         classes, class_to_idx = self._find_classes(self.root)
         samples = make_dataset(self.root, class_to_idx, extensions, is_valid_file, number)
         if len(samples) == 0:
@@ -109,8 +110,20 @@ class DatasetFolder(VisionDataset):
         self.samples = samples
         self.targets = [s[1] for s in samples]
 
+        print('--------------------------------')
+        print('preparing dataset')
         if number != None:
-            print(number)
+            print('Using part of images, number of each class: ',number)
+        else:
+            print('Using all images')
+        if cached == True:
+            print('load all images once')
+            self.images=[]
+            for sample in self.samples:
+                path, target = sample
+                # image = self.loader(path)
+                self.images.append(self.loader(path))
+        print('--------------------------------')
 
     def _find_classes(self, dir):
         """
@@ -143,8 +156,12 @@ class DatasetFolder(VisionDataset):
             tuple: (sample, target) where target is class_index of the target class.
         """
         path, target = self.samples[index]
-        # print(path)
-        sample = self.loader(path)
+
+        if self.cached == False:
+            # print(path)
+            sample = self.loader(path)
+        else:
+            sample = self.images[index]
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
@@ -196,10 +213,11 @@ class Imagefolder_modified(DatasetFolder):
     """
 
     def __init__(self, root, transform=None, target_transform=None,
-                 loader=default_loader, is_valid_file=None, number=None):
+                 loader=default_loader, is_valid_file=None, cached=False, number=None):
         super(Imagefolder_modified, self).__init__(root, loader, IMG_EXTENSIONS if is_valid_file is None else None,
                                           transform=transform,
                                           target_transform=target_transform,
                                           is_valid_file=is_valid_file,
+                                                   cached=cached,
                                                    number=number)
         self.imgs = self.samples

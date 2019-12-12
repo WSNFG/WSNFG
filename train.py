@@ -6,11 +6,10 @@ import torchvision
 from torch.utils.data import DataLoader
 import torch
 import argparse
-import config as cf
-import torch.nn as nn
 import torch.nn.functional as F
 from Imagefolder_modified import Imagefolder_modified
 from resnet import ResNet18_Normalized, ResNet50_Normalized
+from bcnn import BCNN_Normalized
 from PIL import ImageFile # Python：IOError: image file is truncated 的解决办法
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -18,8 +17,6 @@ import time
 
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
-
-record_path='bcnn'
 
 class Manager_AM(object):
     def __init__(self, options):
@@ -41,12 +38,15 @@ class Manager_AM(object):
         self._label_weight = options['label_weight']
         self._denoise = options['denoise']
         self._class = options['n_classes']
+        self._step = options['step']
         print('class number: {}\t\t denoise: {}\t\t drop rate: {}\t\t smooth label: {}\t\t label weight: {}\t\t tk: {}'.format(self._class, self._denoise, self._droprate, self._smooth, self._label_weight,self._tk))
         # Network
         if options['net'] == 'resnet18':
             NET = ResNet18_Normalized
         elif options['net'] == 'resnet50':
             NET = ResNet50_Normalized
+        elif options['net'] == 'bcnn':
+            NET = BCNN_Normalized
         else:
             raise AssertionError('Not implemented yet')
 
@@ -57,12 +57,19 @@ class Manager_AM(object):
             print('cuda device : ', torch.cuda.device_count())
         else:
             raise EnvironmentError('This is designed to run on GPU but no GPU is found')
-
-        # print(self._net)
         # Criterion
         self._criterion = torch.nn.CrossEntropyLoss().cuda()
         # Optimizer
-        params_to_optimize = self._net.parameters()
+        if options['net'] == 'bcnn':
+            if self._step == 1:
+                params_to_optimize = self._net.module.fc.parameters()
+                print('step1')
+            else:
+                self._net.load_state_dict(torch.load(os.path.join(self._path, 'bcnn.pth')))
+                print('step2, loading model')
+                params_to_optimize = self._net.parameters()
+        else:
+            params_to_optimize = self._net.parameters()
         self._optimizer = torch.optim.SGD(params_to_optimize, lr=self._options['base_lr'],
                                           momentum=0.9, weight_decay=self._options['weight_decay'])
         self._scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max', factor=0.1, patience=3, verbose=True, threshold=1e-4)
@@ -102,7 +109,6 @@ class Manager_AM(object):
             loss = self._smooth_label_loss(logits_final,labels_final)
         else:
             loss = self._criterion(logits_final, labels_final)
-
         return loss, len(logits_final)
 
     def _smooth_label_loss(self,logits,labels):
@@ -203,7 +209,7 @@ class Manager_AM(object):
                 best_epoch = t + 1  # t starts from 0
                 print('*', end='')
                 # Save mode
-                torch.save(self._net.state_dict(), os.path.join(self._path, 'resnet_best.pth'))
+                torch.save(self._net.state_dict(), os.path.join(self._path, options['net'] + '.pth'))
             print('%d\t%4.3f\t\t%4.2f%%\t\t%4.2f%%\t\t%4.2f\t\t%4.2f' % (t + 1, sum(epoch_loss) / len(epoch_loss),
                                                             train_accuracy, test_accuracy,
                                                             epoch_end - epoch_start, num_train_total))
@@ -241,10 +247,14 @@ class Manager_AM(object):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='PyTorch Digital Mammography Training')
-    parser.add_argument('--net', dest='net', type=str, default='bcnn',
-                        help='supported options: resnet18, resnet50')
+    parser.add_argument('--net', dest='net', type=str, default='resnet18',
+                        help='supported options: resnet18, resnet50, bcnn')
     parser.add_argument('--n_classes', dest='n_classes', type=int, default=200,
                         help='number of classes')
+    parser.add_argument('--lr', dest='lr', type=float, default=1e-2)
+    parser.add_argument('--w_decay', dest='w_decay', type=float, default=1e-5)
+    parser.add_argument('--epochs', dest='epochs', type=int, default=80)
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
     parser.add_argument('--path', dest='path', type=str, default='model')
     parser.add_argument('--droprate', dest='droprate', type=float, default=0.25,
                         help='droprate')
@@ -253,6 +263,8 @@ if __name__ == '__main__':
     parser.add_argument('--label_weight', dest='label_weight', type=float, default=0.5)
     parser.add_argument('--data_base', dest='data_base', type=str)
     parser.add_argument('--tk', dest='tk', type=int, default=5)
+    parser.add_argument('--step', dest='step', type=int, default=1,
+                        help='Step 1 is training fc only; step 2 is training the entire network')
 
     args = parser.parse_args()
 
@@ -267,10 +279,10 @@ if __name__ == '__main__':
     path = os.path.join(os.popen('pwd').read().strip(), model)
 
     options = {
-            'base_lr': cf.base_lr,
-            'batch_size': cf.batch_size,
-            'epochs': cf.epochs,
-            'weight_decay': cf.weight_decay,
+            'base_lr': args.lr,
+            'weight_decay': args.w_decay,
+            'batch_size': args.batch_size,
+            'epochs': args.epochs,
             'path': path,
             'data_base': args.data_base,
             'net': args.net,
@@ -279,7 +291,8 @@ if __name__ == '__main__':
             'denoise': args.denoise,
             'smooth': args.smooth,
             'label_weight': args.label_weight,
-            'tk':args.tk
+            'tk':args.tk,
+            'step': args.step
         }
     manager = Manager_AM(options)
     manager.train()

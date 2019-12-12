@@ -31,7 +31,7 @@ The code is currently tested only on GPU
     
       - Download model using
        ```
-        wget https://sl-fg.oss-cn-hongkong.aliyuncs.com/resnet50_81.pth
+        wget https://smoothlearning.oss-cn-hongkong.aliyuncs.com/resnet50_81.pth
        ```
     
       - Choose a dataset, create soft link to dataset by
@@ -56,10 +56,11 @@ The code is currently tested only on GPU
        ln -s web-car car
        ln -s web-aircraft aircraft
        ```  
-      - Modify `CUDA_VISIBLE_DEVICES` to proper cuda device id in  ``` run_train.sh```
-      - Modify `data` to the dataset you want to use in  ``` run_train.sh```
+      - Modify `CUDA_VISIBLE_DEVICES` to proper cuda device id in  ``` run_train_resnet.sh```
+      - Modify `data` to the dataset you want to use in  ``` run_train_resnet.sh```
       
       - Activate virtual environment(e.g. conda) and then run the script
        ```
-       bash run_train.sh
+       bash run_train_resnet.sh
        ```
+    - We recommend you use Resnet model, because it's easier to train. Resnet-18 model shows similar performance with BCNN model but needs much less time to train. If you want to train the BCNN model, use ``` run_train_bcnn.sh```. 
